@@ -1,0 +1,17 @@
+fastapi_mail
+fastapi
+pymongo
+uvicorn
+pytz
+pydantic
+pandas
+cryptography
+openai
+bcrypt
+google-cloud-storage
+python-pptx
+apscheduler
+mongoengine
+loguru
+streamlit
+google-api-python-client
