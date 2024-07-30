@@ -24,6 +24,8 @@ from builtins import str
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel, EmailStr
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import pytz
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
@@ -214,7 +216,8 @@ class EmailRequest(BaseModel):
     body: str
     user_id: str
     doc_id: str
-    send_at: datetime
+    time: str
+    days: list[str]
 
 
 class ConnectSenderRequest(BaseModel):
@@ -259,27 +262,24 @@ async def schedule_email(email_request: EmailRequest):
     if "email_id" not in get_docs["dataframe_fields"]:
         return {
             "status": "false",
-            "message": "Cannot send email please check the field email_id exists in the csv.",
+            "message": "Cannot send email please check the field email_id exists in the CSV.",
         }
-    decrypted_pasword = decrypt_password(
+    decrypted_password = decrypt_password(
         encrypted_password=user["password"], key=GLOBAL_EMAIL_DECRYPTOR_KEY
     )
     job_data = email_request.dict()
     job_data["user_id"] = email_request.user_id
     job_data["status"] = "scheduled"
     job_id = jobs_collection_email_schedule.insert_one(job_data).inserted_id
-    scheduler.add_job(
-        send_email,
-        "date",
-        run_date=email_request.send_at,
-        args=[
-            str(job_id),
-            decrypted_pasword,
-            email_request.doc_id,
-            get_docs["dataframe"],
-        ],
-        id=str(job_id),
-    )
+    send_hour, send_minute = map(int, email_request.time.split(":"))
+    for day in email_request.days:
+        scheduler.add_job(
+            send_email,
+            trigger=CronTrigger(day_of_week=day, hour=send_hour, minute=send_minute,timezone=pytz.timezone('Asia/Kolkata')),
+            args=[str(job_id), decrypted_password, email_request.doc_id, get_docs["dataframe"]],
+            id=f"{job_id}_{day}",
+            replace_existing=True 
+        )
     return {"message": "Email scheduled successfully"}
 
 @app.get("/get_connected_emails")
