@@ -340,12 +340,14 @@ def generate_topics(
     gpt_model="gpt-3.5-turbo-instruct",
 ):
     openai.api_key = openai_api_key
-    if prompt_template is None:
+    if prompt_template=="":
         prompt = (
             f"Generate 3 distinct book topics and 3 distinct LinkedIn post topic ideas for the {industry} industry. "
             f"Ensure the topics are general and not related to gender, women in leadership, or personal branding. Format the response as:\n"
             f"1. Book Topic 1\n2. Book Topic 2\n3. Book Topic 3\n4. LinkedIn Post Idea 1\n5. LinkedIn Post Idea 2\n6. LinkedIn Post Idea 3"
         )
+    else:
+        prompt=prompt_template
     response = openai.Completion.create(engine=gpt_model, prompt=prompt, max_tokens=150)
     lines = [
         line.strip()
